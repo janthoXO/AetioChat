@@ -1,0 +1,3 @@
+[submodule "AetioMed"]
+	path = AetioMed
+	url = git@github.com:janthoXO/AetioMed.git
