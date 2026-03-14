@@ -5,6 +5,9 @@ import morgan from "morgan";
 import cors from "cors";
 
 import casesRouter from "./cases.router.js";
+import usersRouter from "./users.router.js";
+import diagnosesRouter from "./diagnoses.router.js";
+import proceduresRouter from "./procedures.router.js";
 import { config } from "@/config.js";
 
 export function initRouter(): Promise<void> {
@@ -29,7 +32,10 @@ export function initRouter(): Promise<void> {
     res.status(200).json({ msg: "Hello World" });
   });
 
+  apiRouter.use("/users", usersRouter);
   apiRouter.use("/cases", casesRouter);
+  apiRouter.use("/diagnoses", diagnosesRouter);
+  apiRouter.use("/procedures", proceduresRouter);
 
   apiRouter.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
