@@ -9,12 +9,12 @@ import { PatientSchema } from "./Patient.js";
  */
 export const CaseSchema = z.object({
   id: z.uuid().optional(),
-  patient: PatientSchema,
+  patient: PatientSchema.nullish(),
   diagnosis: DiagnosisSchema,
-  chiefComplaint: ChiefComplaintSchema,
-  anamnesis: AnamnesisSchema,
-  procedures: z.array(ProcedureWithRelevanceSchema),
-  createdAt: z.iso.datetime().optional(),
+  chiefComplaint: ChiefComplaintSchema.nullish(),
+  anamnesis: AnamnesisSchema.nullish(),
+  procedures: z.array(ProcedureWithRelevanceSchema).nullish(),
+  createdAt: z.iso.datetime().nullish(),
 });
 
 export type Case = z.infer<typeof CaseSchema>;

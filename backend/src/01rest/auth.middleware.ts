@@ -11,14 +11,22 @@ export function authMiddleware(
   res: Response,
   next: NextFunction
 ): void {
-  const authHeader = req.headers.authorization;
+  let token: string | undefined;
 
-  if (!authHeader?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Missing or invalid authorization header" });
-    return;
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
+  } else if (req.headers.cookie) {
+    const match = req.headers.cookie.match(/(?:^|; )token=([^;]*)/);
+    if (match) {
+      token = match[1];
+    }
   }
 
-  const token = authHeader.slice(7);
+  if (!token) {
+    res.status(401).json({ error: "Missing or invalid authorization" });
+    return;
+  }
 
   try {
     const payload = jwt.verify(token, config.JWT_SECRET) as {

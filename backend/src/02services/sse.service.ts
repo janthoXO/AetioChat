@@ -3,6 +3,22 @@ import type { Response } from "express";
 class SseService {
   // Map of caseId -> array of connected clients
   private clients: Map<string, { userId: string; res: Response }[]> = new Map();
+  // Array of global connected clients (e.g., for case generation events)
+  private globalClients: { userId: string; res: Response }[] = [];
+
+  addGlobalClient(userId: string, res: Response) {
+    this.globalClients.push({ userId, res });
+
+    res.on("close", () => {
+      this.globalClients = this.globalClients.filter((c) => c.res !== res);
+    });
+  }
+
+  broadcastGlobal(eventData: any) {
+    this.globalClients.forEach((client) => {
+      client.res.write(`data: ${JSON.stringify(eventData)}\n\n`);
+    });
+  }
 
   addClient(caseId: string, userId: string, res: Response) {
     if (!this.clients.has(caseId)) {

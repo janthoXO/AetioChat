@@ -36,10 +36,9 @@ export function ChatPage() {
       });
 
     // Set up SSE
-    const match = document.cookie.match(/(?:^|; )token=([^;]*)/);
-    const token = match ? match[1] : null;
     const eventSource = new EventSource(
-      `${import.meta.env.VITE_API_URL || "http://localhost:3031/api"}/cases/${caseId}/events?token=${token}`
+      `${import.meta.env.VITE_API_URL || "http://localhost:3031/api"}/cases/${caseId}/events`,
+      { withCredentials: true }
     );
 
     eventSource.onmessage = (event) => {

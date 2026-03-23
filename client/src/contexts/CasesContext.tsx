@@ -4,6 +4,8 @@ import { fetchCases as fetchCasesApi, generateCase as generateCaseApi } from "@/
 import { fetchDiagnoses } from "@/api/diagnosis.api";
 import { fetchProcedures } from "@/api/procedures.api";
 import type { CaseDTO } from "shared/models/Case.dto";
+import { useAuth } from "./AuthContext";
+import { API_URL } from "@/lib/api";
 
 interface CasesState {
   cases: CaseDTO[];
@@ -34,6 +36,7 @@ export function CasesProvider({ children }: { children: ReactNode }) {
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const { token } = useAuth();
 
   const fetchCases = async () => {
     await fetchCasesApi().then((data) => setCases(data));
@@ -65,6 +68,37 @@ export function CasesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetchCases();
   }, []);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const eventSource = new EventSource(`${API_URL}/cases/events`, {
+      withCredentials: true,
+    });
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "CASE_GENERATED" && data.case) {
+          setCases((prev) => {
+            const index = prev.findIndex((c) => c.id === data.case.id);
+            if (index !== -1) {
+              const newCases = [...prev];
+              newCases[index] = data.case;
+              return newCases;
+            }
+            return [data.case, ...prev];
+          });
+        }
+      } catch (err) {
+        console.error("Error parsing case generation event", err);
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [token]);
 
   const myCases = cases.filter((c) => !!c.startedAt);
   const newCases = cases.filter((c) => !c.startedAt);

@@ -2,16 +2,50 @@ import { casesRepo } from "@/03db/repos/cases.repo.js";
 import { generateCase } from "@/03api/cases.api.js";
 import { fetchDiagnoses } from "@/03api/diagnoses.api.js";
 import type { CaseDTO } from "shared/models/Case.dto.js";
+import { sseService } from "./sse.service.js";
 
 export const casesService = {
   async getUserCases(userId: string): Promise<CaseDTO[]> {
     const cases = await casesRepo.getAllCasesMinimal(userId);
     return cases.map(c => ({
       id: c.id,
-      chiefComplaint: c.chiefComplaint || "No chief complaint provided",
+      chiefComplaint: c.chiefComplaint || "Generating...",
       startedAt: c.startedAt || undefined,
+      createdAt: c.createdAt || undefined,
       completed: c.completed || undefined
     }));
+  },
+
+  async _processGeneration(caseId: string, diagnosisName: string, diagnosisIcd: string | null) {
+    try {
+      const generatedCase = await generateCase({ name: diagnosisName, icd: diagnosisIcd });
+      
+      const saved = await casesRepo.updateGeneratingCase(caseId, {
+        patient: generatedCase.patient,
+        chiefComplaint: generatedCase.chiefComplaint,
+        anamnesis: generatedCase.anamnesis,
+        procedures: generatedCase.procedures,
+      });
+
+      const completedCase: CaseDTO = {
+        id: saved.id,
+        chiefComplaint: saved.chief_complaint!,
+        startedAt: undefined,
+        createdAt: saved.created_at || undefined,
+      };
+
+      sseService.broadcastGlobal({ type: "CASE_GENERATED", case: completedCase });
+    } catch (err) {
+      console.error(`Error processing case generation for ${caseId}:`, err);
+    }
+  },
+
+  async resumeGeneratingCases() {
+    const generatingCases = await casesRepo.getGeneratingCases();
+    console.log(`Resuming ${generatingCases.length} interrupted case generations...`);
+    for (const c of generatingCases) {
+      this._processGeneration(c.id, c.diagnosis_name, c.diagnosis_icd);
+    }
   },
 
   async generateCase(): Promise<CaseDTO> {
@@ -31,24 +65,20 @@ export const casesService = {
 
     if (!randomDiag) throw new Error("No diagnoses available");
 
-    // 4. Generate the actual case hitting the generator
-    const generatedCase = await generateCase(randomDiag);
-
-    // 5. Save the generated case to our DB
-    const saved = await casesRepo.create({
-      patient: generatedCase.patient,
-      chiefComplaint: generatedCase.chiefComplaint,
-      anamnesis: generatedCase.anamnesis,
-      procedures: generatedCase.procedures,
+    // 5. Create scaffold case in DB
+    const saved = await casesRepo.createPartial({
       diagnosisName: randomDiag.name,
       diagnosisIcd: randomDiag.icd!,
     });
 
+    // 6. Spawn background compilation without awaiting
+    this._processGeneration(saved.id, randomDiag.name, randomDiag.icd!);
+
     return {
       id: saved.id,
-      chiefComplaint: saved.chief_complaint!,
+      chiefComplaint: "Generating...",
       startedAt: undefined,
-      createdAt: saved.created_at || undefined,
+      createdAt: undefined,
     };
   },
 

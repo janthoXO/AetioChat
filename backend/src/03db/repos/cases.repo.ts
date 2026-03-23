@@ -39,6 +39,52 @@ export const casesRepo = {
       .executeTakeFirstOrThrow();
   },
 
+  async createPartial(caseData: {
+    diagnosisName: string;
+    diagnosisIcd: string | null;
+  }) {
+    return db
+      .insertInto("cases")
+      .values({
+        diagnosis_name: caseData.diagnosisName,
+        diagnosis_icd: caseData.diagnosisIcd,
+        created_at: null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  },
+
+  async updateGeneratingCase(
+    id: string,
+    caseData: {
+      patient: Patient;
+      chiefComplaint: ChiefComplaint;
+      anamnesis: Anamnesis;
+      procedures: ProcedureWithRelevance[];
+    }
+  ) {
+    return db
+      .updateTable("cases")
+      .set({
+        patient: JSON.stringify(caseData.patient),
+        chief_complaint: caseData.chiefComplaint,
+        anamnesis: JSON.stringify(caseData.anamnesis),
+        procedures: JSON.stringify(caseData.procedures),
+        created_at: new Date().toISOString(),
+      })
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  },
+
+  async getGeneratingCases() {
+    return db
+      .selectFrom("cases")
+      .selectAll()
+      .where("created_at", "is", null)
+      .execute();
+  },
+
   /** Get cases the user has already interacted with */
   async getUserCases(userId: string) {
     return db
@@ -80,6 +126,7 @@ export const casesRepo = {
       .select([
         "cases.id",
         "cases.chief_complaint as chiefComplaint",
+        "cases.created_at as createdAt",
         "user_cases.started_at as startedAt",
         "user_cases.completed",
       ])

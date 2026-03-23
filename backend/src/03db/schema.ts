@@ -21,13 +21,13 @@ export interface UsersTable {
 
 export interface CasesTable {
   id: Generated<string>;
-  patient?: JSONColumnType<Patient>; // JSON string
-  chief_complaint?: ChiefComplaint;
-  anamnesis?: JSONColumnType<Anamnesis>; // JSON string
-  procedures?: JSONColumnType<ProcedureWithRelevance[]>; // JSON string
+  patient?: JSONColumnType<Patient> | null; // JSON string
+  chief_complaint?: ChiefComplaint | null;
+  anamnesis?: JSONColumnType<Anamnesis> | null; // JSON string
+  procedures?: JSONColumnType<ProcedureWithRelevance[]> | null; // JSON string
   diagnosis_name: string;
   diagnosis_icd: string | null;
-  created_at: Generated<string>;
+  created_at: Generated<string | null>;
 }
 
 export interface UserCasesTable {

@@ -16,7 +16,10 @@ export function initRouter(): Promise<void> {
 
   app.use(express.json());
   if (config.DEBUG === true) {
-    app.use(cors());
+    app.use(cors({
+      origin: true,
+      credentials: true
+    }));
     app.use(morgan("dev"));
   }
 

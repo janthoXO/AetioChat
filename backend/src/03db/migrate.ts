@@ -53,6 +53,15 @@ export async function migrate() {
   `.execute(db);
 
   await sql`
+    ALTER TABLE cases
+    ALTER COLUMN patient DROP NOT NULL,
+    ALTER COLUMN chief_complaint DROP NOT NULL,
+    ALTER COLUMN anamnesis DROP NOT NULL,
+    ALTER COLUMN procedures DROP NOT NULL,
+    ALTER COLUMN created_at DROP NOT NULL;
+  `.execute(db);
+
+  await sql`
     CREATE INDEX IF NOT EXISTS idx_messages_user_case
     ON messages (user_id, case_id, created_at);
   `.execute(db);

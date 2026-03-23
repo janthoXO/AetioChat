@@ -58,11 +58,17 @@ export function AppSidebar() {
             <SidebarMenu>
               {newCases.map((c) => (
                 <SidebarMenuItem key={c.id}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={`/chat/${c.id}`}>
-                      <span className="truncate">{c.chiefComplaint}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
+                  {c.createdAt ? (
+                    <SidebarMenuButton asChild>
+                      <NavLink to={`/chat/${c.id}`}>
+                        <span className="truncate">{c.chiefComplaint}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  ) : (
+                    <SidebarMenuButton disabled>
+                      <span className="truncate italic text-muted-foreground mr-2">Generating...</span>
+                    </SidebarMenuButton>
+                  )}
                 </SidebarMenuItem>
               ))}
               {newCases.length === 0 && (

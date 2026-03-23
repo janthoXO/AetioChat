@@ -3,6 +3,7 @@ import { config } from "./config.js";
 import { usersRepo } from "./03db/repos/users.repo.js";
 import bcrypt from "bcrypt";
 import { migrate } from "./03db/migrate.js";
+import { casesService } from "./02services/cases.service.js";
 
 console.log("Environment variables loaded.", config);
 
@@ -11,6 +12,8 @@ async function bootstrap() {
     console.error("❌ Migration failed:", err);
     process.exit(1);
   });
+
+  casesService.resumeGeneratingCases();
 
   if (config.ADMIN_USERNAME && config.ADMIN_PASSWORD) {
     const existingAdmin = await usersRepo.findByUsername(config.ADMIN_USERNAME);

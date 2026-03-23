@@ -34,15 +34,26 @@ router.get("/", authMiddleware, async (req: AuthRequest, res) => {
 router.post("/generate", authMiddleware, async (_req: AuthRequest, res) => {
   try {
     const newCase = await casesService.generateCase();
-    res.json({
-      id: newCase.id,
-      chiefComplaint: newCase.chiefComplaint,
-      startedAt: undefined,
-      completed: false,
-    });
+    res.json(newCase);
   } catch (err: any) {
     console.error("Error generating case:", err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/events", async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    sseService.addGlobalClient(userId, res);
+  } catch (err) {
+    console.error("SSE /events Auth Error:", err);
+    res.status(401).json({ error: "Invalid token" });
   }
 });
 
@@ -56,24 +67,21 @@ router.get("/:caseId/messages", authMiddleware, async (req: AuthRequest, res) =>
   }
 });
 
-router.get("/:caseId/events", (req, res) => {
-  // SSE uses query param for auth due to EventSource limitations
-  const token = req.query.token as string;
-  if (!token) { res.status(401).end(); return; }
-
+router.get("/:caseId/events", (req: AuthRequest, res) => {
   try {
-    const payload = jwt.verify(token, config.JWT_SECRET) as { userId: string };
+    const userId = req.userId!;
     
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
     // Add to active clients
-    sseService.addClient(req.params.caseId as string, payload.userId, res);
+    sseService.addClient(req.params.caseId as string, userId, res);
 
     // Initial ping
     res.write("data: {\"type\": \"ping\"}\n\n");
-  } catch {
+  } catch (err) {
+    console.error("SSE /:caseId/events Auth Error:", err);
     res.status(401).end();
   }
 });
