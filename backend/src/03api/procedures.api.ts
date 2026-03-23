@@ -1,3 +1,8 @@
-export function fetchProcedures() {
-  
+import { config } from "@/config.js";
+import { ProcedureSchema, type Procedure } from "shared/index.js";
+
+export async function fetchProcedures(): Promise<Procedure[]> {
+  const res = await fetch(`${config.GENERATOR_URL}/procedures`);
+  if (!res.ok) throw new Error("Failed to fetch procedures");
+  return ProcedureSchema.array().parse(await res.json());
 }

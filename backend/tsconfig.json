@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     // Output
-    "rootDir": "./src",
     "outDir": "./dist",
     "sourceMap": true,
 
@@ -30,9 +29,10 @@
     "skipLibCheck": true,
 
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "shared/*": ["../shared/src/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../shared/src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

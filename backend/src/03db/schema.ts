@@ -1,0 +1,47 @@
+import type { Anamnesis } from "@/02models/Anamnesis.js";
+import type { Patient } from "@/02models/Patient.js";
+import type { ProcedureWithRelevance } from "@/02models/Procedure.js";
+import type { Generated, JSONColumnType } from "kysely";
+import type { ChiefComplaint } from "shared/index.js";
+
+export interface Database {
+  users: UsersTable;
+  cases: CasesTable;
+  user_cases: UserCasesTable;
+  messages: MessagesTable;
+}
+
+export interface UsersTable {
+  id: Generated<string>;
+  username: string;
+  password_hash: string;
+  role: Generated<"user" | "admin">;
+  created_at: Generated<string>;
+}
+
+export interface CasesTable {
+  id: Generated<string>;
+  patient?: JSONColumnType<Patient>; // JSON string
+  chief_complaint?: ChiefComplaint;
+  anamnesis?: JSONColumnType<Anamnesis>; // JSON string
+  procedures?: JSONColumnType<ProcedureWithRelevance[]>; // JSON string
+  diagnosis_name: string;
+  diagnosis_icd: string | null;
+  created_at: Generated<string>;
+}
+
+export interface UserCasesTable {
+  user_id: string;
+  case_id: string;
+  completed?: Generated<string>;
+  started_at: Generated<string>;
+}
+
+export interface MessagesTable {
+  id: Generated<string>;
+  user_id: string;
+  case_id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: Generated<string>;
+}

@@ -1,0 +1,37 @@
+info:
+  name: Login
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{base_url}}/api/users/login"
+  body:
+    type: json
+    data: |-
+      {
+        "username": "admin",
+        "password": "admin"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        // Extract token from response (adjust the key to match your API)
+          const token = res.body.token;
+          
+          if (token) {
+            // Save it to the collection-level environment variable
+            bru.setEnvVar('token', token);
+            console.log('✅ Token saved ');
+          } else {
+            console.log('⚠️ No token found in response.');
+          }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

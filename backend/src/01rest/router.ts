@@ -8,37 +8,10 @@ import casesRouter from "./cases.router.js";
 import usersRouter from "./users.router.js";
 import diagnosesRouter from "./diagnoses.router.js";
 import proceduresRouter from "./procedures.router.js";
+import { authMiddleware } from "./auth.middleware.js";
 import { config } from "@/config.js";
 
 export function initRouter(): Promise<void> {
-  const apiRouter = express.Router();
-
-  apiRouter.get("/hello", async (_req, res) => {
-    /* #swagger.responses[200] = {
-            content: {
-                "application/json": {
-                    schema:{
-                        type: "object",
-                        properties: {
-                            msg: {
-                                type: "string"
-                            }
-                        }
-                    }
-                }           
-            }
-        }   
-    */
-    res.status(200).json({ msg: "Hello World" });
-  });
-
-  apiRouter.use("/users", usersRouter);
-  apiRouter.use("/cases", casesRouter);
-  apiRouter.use("/diagnoses", diagnosesRouter);
-  apiRouter.use("/procedures", proceduresRouter);
-
-  apiRouter.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
   const app = express();
 
   app.use(express.json());
@@ -46,6 +19,23 @@ export function initRouter(): Promise<void> {
     app.use(cors());
     app.use(morgan("dev"));
   }
+
+  const apiRouter = express.Router();
+
+  apiRouter.get("/hello", async (_req, res) => {
+    res.status(200).json({ msg: "Hello World" });
+  });
+
+  // Public routes
+  apiRouter.use("/users", usersRouter);
+
+  // Swagger docs
+  apiRouter.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+  // Protected routes
+  apiRouter.use("/cases", authMiddleware, casesRouter);
+  apiRouter.use("/diagnoses", authMiddleware, diagnosesRouter);
+  apiRouter.use("/procedures", authMiddleware, proceduresRouter);
 
   app.use("/api", apiRouter);
   app.listen(config.PORT, () => {
