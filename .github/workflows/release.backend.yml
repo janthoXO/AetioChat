@@ -1,0 +1,31 @@
+name: Release Backend
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  package:
+    uses: ./.github/workflows/package.backend.yml
+    with:
+      version: ${{ github.event.release.tag_name }}
+
+  release-info:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image-backend-${{ github.event.release.tag_name }}
+          path: /tmp/
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: /tmp/docker-image-backend.tar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

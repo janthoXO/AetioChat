@@ -1,0 +1,61 @@
+name: Package Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'shared/**'
+      - '.github/workflows/package.backend.yml'
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: false
+        default: 'latest'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/backend
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            ${{ inputs.version != 'latest' && format('type=raw,value={0}', inputs.version) || '' }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=docker,dest=/tmp/docker-image-backend.tar
+
+      - name: Upload Docker image artifact
+        if: ${{ inputs.version != 'latest' && inputs.version != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-backend-${{ inputs.version }}
+          path: /tmp/docker-image-backend.tar

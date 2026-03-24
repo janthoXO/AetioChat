@@ -1,0 +1,31 @@
+name: Release Client
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  package:
+    uses: ./.github/workflows/package.client.yml
+    with:
+      version: ${{ github.event.release.tag_name }}
+
+  release-info:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image-client-${{ github.event.release.tag_name }}
+          path: /tmp/
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: /tmp/docker-image-client.tar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
