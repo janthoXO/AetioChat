@@ -2,3 +2,6 @@ packages:
   - "backend"
   - "client"
   - "shared"
+syncInjectedDepsAfterScripts:
+  - build
+injectWorkspacePackages: true
