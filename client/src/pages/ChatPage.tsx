@@ -93,7 +93,7 @@ export function ChatPage() {
   }, [messages]);
 
   const sendMessage = async (content: string) => {
-    if (!content.trim() || isSending || !caseId) return;
+    if (!content.trim() || isInputDisabled || !caseId) return;
 
     setIsSending(true);
     setInput("");
@@ -142,6 +142,12 @@ export function ChatPage() {
 
   const displayMessages = [welcomeMessage, chiefComplaintMessage, ...messages];
 
+  // Disable input if the last message in the main sequence was from the user
+  // We check the raw messages array since displayMessages has artificial assistant messages at the start
+  const lastRealMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+  const isWaitingForResponse = lastRealMessage?.role === "user" || isSending;
+  const isInputDisabled = isWaitingForResponse || !!currentCase.completed;
+
   return (
     <div className="flex flex-col h-full relative">
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
@@ -164,6 +170,15 @@ export function ChatPage() {
               </div>
             </div>
           ))}
+          {isWaitingForResponse && (
+            <div className="flex justify-start">
+              <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-muted text-foreground flex items-center gap-1.5 h-[36px]">
+                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.3s]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.15s]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" />
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
 
@@ -174,13 +189,13 @@ export function ChatPage() {
               type="Diagnosis"
               items={diagnoses}
               onSelect={(name) => sendMessage(`Make diagnosis: ${name}`)}
-              disabled={isSending || !!currentCase.completed}
+              disabled={isInputDisabled}
             />
             <ActionDropdown
               type="Procedure"
               items={procedures}
               onSelect={(name) => sendMessage(`Schedule procedure: ${name}`)}
-              disabled={isSending || !!currentCase.completed}
+              disabled={isInputDisabled}
             />
           </div>
           <form
@@ -190,13 +205,13 @@ export function ChatPage() {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              disabled={isSending || !!currentCase.completed}
+              placeholder={isWaitingForResponse ? "Waiting for response..." : "Type your message..."}
+              disabled={isInputDisabled}
               className="flex-1"
             />
             <Button
               type="submit"
-              disabled={!input.trim() || isSending || !!currentCase.completed}
+              disabled={!input.trim() || isInputDisabled}
             >
               <Send className="h-4 w-4" />
               <span className="sr-only">Send</span>

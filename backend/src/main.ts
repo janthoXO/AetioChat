@@ -4,6 +4,7 @@ import { usersRepo } from "./03db/repos/users.repo.js";
 import bcrypt from "bcrypt";
 import { migrate } from "./03db/migrate.js";
 import { casesService } from "./02services/cases.service.js";
+import { agentService } from "./02services/agent.service.js";
 
 console.log("Environment variables loaded.", config);
 
@@ -14,6 +15,7 @@ async function bootstrap() {
   });
 
   casesService.resumeGeneratingCases();
+  agentService.resumeInterruptedMessages();
 
   if (config.ADMIN_USERNAME && config.ADMIN_PASSWORD) {
     const existingAdmin = await usersRepo.findByUsername(config.ADMIN_USERNAME);

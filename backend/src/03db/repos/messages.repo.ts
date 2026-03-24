@@ -11,6 +11,19 @@ export const messagesRepo = {
       .execute();
   },
 
+  async findLatestMessagePerCase() {
+    // using distinct on to get the last message for a combination of user_id and case_id
+    // This allows us to find cases where the AI failed to respond
+    return db
+      .selectFrom("messages")
+      .distinctOn(["case_id", "user_id"])
+      .selectAll()
+      .orderBy("case_id")
+      .orderBy("user_id")
+      .orderBy("created_at", "desc")
+      .execute();
+  },
+
   async create(message: {
     userId: string;
     caseId: string;

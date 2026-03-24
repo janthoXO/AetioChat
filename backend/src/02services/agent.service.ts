@@ -153,4 +153,25 @@ Note: the most recent message from the user is: ${userMessage}`;
       });
     }
   },
+
+  async resumeInterruptedMessages() {
+    try {
+      const latestMessages = await messagesRepo.findLatestMessagePerCase();
+      
+      const interrupted = latestMessages.filter(m => m.role === "user");
+      
+      if (interrupted.length > 0) {
+        console.log(`Resuming ${interrupted.length} interrupted AI responses...`);
+        
+        for (const msg of interrupted) {
+          // Fire asynchronously
+          this.handleMessage(msg.user_id, msg.case_id, msg.content).catch(e => {
+            console.error(`Failed to resume message for case ${msg.case_id}:`, e);
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to check for interrupted messages:", error);
+    }
+  },
 };
