@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import type { User } from "shared/models/User.js";
+import { fetchApi } from "@/lib/api";
 
 interface AuthState {
   token: string | null;
@@ -46,6 +47,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setUser(null);
   };
+
+  useEffect(() => {
+    if (token) {
+      fetchApi<User>("/users/me")
+        .then((userData) => {
+          setUser(userData);
+        })
+        .catch(() => {
+          logout();
+        });
+    }
+  }, [token]);
 
   return (
     <AuthContext.Provider

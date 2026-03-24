@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { usersRepo } from "@/03db/repos/users.repo.js";
 import { config } from "@/config.js";
+import { authMiddleware, type AuthRequest } from "./auth.middleware.js";
 import z from "zod";
 
 const router = express.Router();
@@ -54,6 +55,25 @@ router.post("/login", async (req, res) => {
       username: user.username,
       role: user.role,
     },
+  });
+});
+
+router.get("/me", authMiddleware, async (req: AuthRequest, res) => {
+  if (!req.userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const user = await usersRepo.findById(req.userId);
+  if (!user) {
+    res.status(401).json({ error: "User not found" });
+    return;
+  }
+
+  res.json({
+    id: user.id,
+    username: user.username,
+    role: user.role,
   });
 });
 
