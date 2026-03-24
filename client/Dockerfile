@@ -1,27 +1,17 @@
-# Stage 1: Build the application
 FROM node:20-slim AS base
-
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
-WORKDIR /app
-
-# Copy workspace and lockfile from root
-COPY pnpm-workspace.yaml pnpm-lock.yaml ./
-
-# Copy shared package and client
-COPY shared ./shared
-COPY client ./client
-
-# Install dependencies at the workspace root
+FROM base AS build
+COPY . /usr/src/app
+WORKDIR /usr/src/app
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN pnpm run -r build
+RUN pnpm deploy --filter=client --prod /prod/client
 
-# Build everything
-RUN pnpm --filter client run build
-
-# Stage 2: Serve the application using Nginx
-FROM nginx:alpine AS runner
-COPY --from=base /app/client/dist /usr/share/nginx/html
+FROM base AS client
+COPY --from=build /prod/client /prod/client
+WORKDIR /prod/client
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD [ "pnpm", "start" ]
