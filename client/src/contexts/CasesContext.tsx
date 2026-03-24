@@ -1,21 +1,20 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import type { Diagnosis, Procedure } from "shared/index.js";
+import type { CaseUserViewDTO, DiagnosisDTO, ProcedureDTO } from "shared/index.js";
 import { fetchCases as fetchCasesApi, generateCase as generateCaseApi } from "@/api/cases.api";
 import { fetchDiagnoses } from "@/api/diagnosis.api";
 import { fetchProcedures } from "@/api/procedures.api";
-import type { CaseDTO } from "../../../shared/src/index.js";
 import { useAuth } from "./AuthContext";
 import { API_URL } from "@/lib/api";
 
 interface CasesState {
-  cases: CaseDTO[];
-  myCases: CaseDTO[];
-  newCases: CaseDTO[];
-  diagnoses: Diagnosis[];
-  procedures: Procedure[];
+  cases: CaseUserViewDTO[];
+  myCases: CaseUserViewDTO[];
+  newCases: CaseUserViewDTO[];
+  diagnoses: DiagnosisDTO[];
+  procedures: ProcedureDTO[];
   isGenerating: boolean;
   fetchCases: () => Promise<void>;
-  generateCase: () => Promise<CaseDTO | null>;
+  generateCase: () => Promise<CaseUserViewDTO | null>;
   loadOptions: () => Promise<void>;
 }
 
@@ -32,9 +31,9 @@ const CasesContext = createContext<CasesState>({
 });
 
 export function CasesProvider({ children }: { children: ReactNode }) {
-  const [cases, setCases] = useState<CaseDTO[]>([]);
-  const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
-  const [procedures, setProcedures] = useState<Procedure[]>([]);
+  const [cases, setCases] = useState<CaseUserViewDTO[]>([]);
+  const [diagnoses, setDiagnoses] = useState<DiagnosisDTO[]>([]);
+  const [procedures, setProcedures] = useState<ProcedureDTO[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const { token } = useAuth();
 

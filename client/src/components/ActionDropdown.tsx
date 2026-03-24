@@ -15,11 +15,11 @@ import {
 } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
 
-import type { Diagnosis, Procedure } from "shared/index.js";
+import type { DiagnosisDTO, ProcedureDTO } from "shared/index.js";
 
 interface ActionDropdownProps {
   type: "Diagnosis" | "Procedure";
-  items: (Diagnosis | Procedure)[];
+  items: (DiagnosisDTO | ProcedureDTO)[];
   onSelect: (item: string) => void;
   disabled?: boolean;
 }

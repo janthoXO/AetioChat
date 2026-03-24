@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import type { User } from "../../../shared/src/index.js";
 import { fetchApi } from "@/lib/api";
+import type { UserDTO } from "shared/index";
 
 interface AuthState {
   token: string | null;
-  user: User | null;
+  user: UserDTO | null;
   isAuthenticated: boolean;
-  login: (token: string, user: User) => void;
+  login: (token: string, user: UserDTO) => void;
   logout: () => void;
 }
 
@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const match = document.cookie.match(/(?:^|; )token=([^;]*)/);
     return match ? match[1] : null;
   });
-  const [user, setUser] = useState<User | null>(() => {
+  const [user, setUser] = useState<UserDTO | null>(() => {
     const saved = localStorage.getItem("user");
     return saved ? JSON.parse(saved) : null;
   });
@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     else localStorage.removeItem("user");
   }, [user]);
 
-  const login = (newToken: string, newUser: User) => {
+  const login = (newToken: string, newUser: UserDTO) => {
     setToken(newToken);
     setUser(newUser);
   };
@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (token) {
-      fetchApi<User>("/users/me")
+      fetchApi<UserDTO>("/users/me")
         .then((userData) => {
           setUser(userData);
         })

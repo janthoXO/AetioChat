@@ -1,6 +1,6 @@
 import { fetchApi } from "@/lib/api";
-import type { Diagnosis } from "shared/index";
+import type { DiagnosisDTO } from "shared/index";
 
 export async function fetchDiagnoses() {
-  return fetchApi<Diagnosis[]>("/diagnoses");
+  return fetchApi<DiagnosisDTO[]>("/diagnoses");
 }

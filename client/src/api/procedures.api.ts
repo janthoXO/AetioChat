@@ -1,6 +1,6 @@
 import { fetchApi } from "@/lib/api";
-import type { Procedure } from "shared/index";
+import type { ProcedureDTO } from "shared/index";
 
 export async function fetchProcedures() {
-  return fetchApi<Procedure[]>("/procedures");
+  return fetchApi<ProcedureDTO[]>("/procedures");
 }

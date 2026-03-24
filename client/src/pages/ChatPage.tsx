@@ -73,7 +73,7 @@ export function ChatPage() {
     };
 
     return () => eventSource.close();
-  }, [caseId]);
+  }, [caseId, loadOptions]);
 
   useEffect(() => {
     // Auto-scroll to bottom

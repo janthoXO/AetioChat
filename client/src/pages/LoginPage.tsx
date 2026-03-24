@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 export function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const { login } = useAuth();
@@ -18,7 +18,6 @@ export function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setIsLoading(true);
 
     try {
@@ -27,11 +26,8 @@ export function LoginPage() {
       login(response.token, response.user);
       navigate("/");
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message || "Login failed");
-      } else {
-        setError("Login failed");
-      }
+      const message = err instanceof Error ? err.message : "Login failed";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -46,11 +42,6 @@ export function LoginPage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4 my-4">
-            {error && (
-              <div className="p-3 text-sm font-medium text-destructive bg-destructive/10 rounded-md">
-                {error}
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input

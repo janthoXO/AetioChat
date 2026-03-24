@@ -1,11 +1,11 @@
 import { fetchApi } from "@/lib/api";
-import type { Message } from "shared/index";
+import type { MessageDTO } from "shared/index";
 
 export async function fetchMessages(caseId: string) {
-  return fetchApi<Message[]>(`/cases/${caseId}/messages`);
+  return fetchApi<MessageDTO[]>(`/cases/${caseId}/messages`);
 }
 
-export async function sendMessage(caseId: string, content: string): Promise<Message> {
+export async function sendMessage(caseId: string, content: string): Promise<MessageDTO> {
   return fetchApi(`/cases/${caseId}/message`, {
     method: "POST",
     body: { content },
