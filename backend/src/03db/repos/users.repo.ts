@@ -17,7 +17,11 @@ export const usersRepo = {
       .executeTakeFirst();
   },
 
-  async create(username: string, passwordHash: string, role: "user" | "admin" = "user") {
+  async create(
+    username: string,
+    passwordHash: string,
+    role: "user" | "admin" = "user"
+  ) {
     return db
       .insertInto("users")
       .values({

@@ -17,7 +17,9 @@ const ConfigSchema = z.object({
 
   GENERATOR_URL: z.string().default("http://localhost:3030/api"),
 
-  DATABASE_URL: z.string().default("postgresql://postgres:postgres@localhost:5432/aetio"),
+  DATABASE_URL: z
+    .string()
+    .default("postgresql://postgres:postgres@localhost:5432/aetio"),
 
   ADMIN_USERNAME: z.string().optional(),
   ADMIN_PASSWORD: z.string().optional(),

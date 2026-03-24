@@ -1,11 +1,11 @@
-import type { UsersTable } from '../03db/schema.js';
-import type { Insertable, Selectable } from 'kysely';
-import { z } from 'zod';
+import type { UsersTable } from "../03db/schema.js";
+import type { Insertable, Selectable } from "kysely";
+import { z } from "zod";
 
 export const UserSchema = z.object({
   id: z.uuid(),
   username: z.string(),
-  role: z.enum(['user', 'admin']),
+  role: z.enum(["user", "admin"]),
   password_hash: z.string(),
   createdAt: z.date(),
 });
@@ -32,7 +32,7 @@ export function userFromEntity(entity: Selectable<UsersTable>): UserDomain {
   return {
     id: entity.id,
     username: entity.username,
-    role: entity.role as 'user' | 'admin',
+    role: entity.role as "user" | "admin",
     password_hash: entity.password_hash,
     createdAt: new Date(entity.created_at),
   };

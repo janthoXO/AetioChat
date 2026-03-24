@@ -5,7 +5,7 @@ import type { Diagnosis } from "@/02models/Diagnosis.js";
 
 export function buildDiagnosisTool(
   actualDiagnosis: Diagnosis,
-  setSolved: (solved: boolean) => void,
+  setSolved: (solved: boolean) => void
 ) {
   return tool(
     async ({ proposedDiagnosis }) => {
