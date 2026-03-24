@@ -11,7 +11,7 @@ router.use((_req, _res, next) => {
 router.get("/", async (_req, res) => {
   try {
     const data = await fetchDiagnoses();
-    console.debug("Fetched diagnoses:", data);
+    console.debug(`Fetched ${data.length} diagnoses`);
     res.json(data);
   } catch (err: any) {
     console.error("Error fetching diagnoses:", err);

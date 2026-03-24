@@ -9,8 +9,11 @@ import { Send } from "lucide-react";
 import { toast } from "sonner";
 import type { Message } from "shared/index.js";
 import { fetchMessages, sendMessage as sendMsgApi } from "@/api/messages.api";
+import ReactMarkdown from "react-markdown";
 
-type MessageWithTempId = (Message & { isTemp?: boolean }) | { id: string; role: "user" | "assistant"; content: string; isTemp?: boolean };
+type MessageWithTempId =
+  | (Message & { isTemp?: boolean })
+  | { id: string; role: "user" | "assistant"; content: string; isTemp?: boolean };
 
 export function ChatPage() {
   const { caseId } = useParams<{ caseId: string }>();
@@ -38,7 +41,7 @@ export function ChatPage() {
     // Set up SSE
     const eventSource = new EventSource(
       `${import.meta.env.VITE_API_URL || "http://localhost:3031/api"}/cases/${caseId}/events`,
-      { withCredentials: true }
+      { withCredentials: true },
     );
 
     eventSource.onmessage = (event) => {
@@ -49,10 +52,7 @@ export function ChatPage() {
             const lastMsg = prev[prev.length - 1];
             if (lastMsg && lastMsg.role === "assistant" && lastMsg.isTemp) {
               // Append to existing temp message
-              return [
-                ...prev.slice(0, -1),
-                { ...lastMsg, content: lastMsg.content + data.content },
-              ];
+              return [...prev.slice(0, -1), { ...lastMsg, content: lastMsg.content + data.content }];
             } else {
               // Create new temp message
               return [
@@ -66,10 +66,7 @@ export function ChatPage() {
           setMessages((prev) => {
             const lastMsg = prev[prev.length - 1];
             if (lastMsg && lastMsg.isTemp) {
-              return [
-                ...prev.slice(0, -1),
-                { ...lastMsg, isTemp: false },
-              ];
+              return [...prev.slice(0, -1), { ...lastMsg, isTemp: false }];
             }
             return prev;
           });
@@ -101,10 +98,7 @@ export function ChatPage() {
     const tempId = `opt-${Date.now()}`;
 
     // Optimistic UI update
-    setMessages((prev) => [
-      ...prev,
-      { id: tempId, role: "user", content },
-    ]);
+    setMessages((prev) => [...prev, { id: tempId, role: "user", content }]);
 
     try {
       await sendMsgApi(caseId, content);
@@ -131,7 +125,8 @@ export function ChatPage() {
   const welcomeMessage: MessageWithTempId = {
     id: "welcome-msg",
     role: "assistant",
-    content: "Welcome to AetioChat! You can start asking questions to investigate the case, propose diagnoses, and suggest procedures to uncover the underlying issue.",
+    content:
+      "Welcome to AetioChat! You can start asking questions to investigate the case, propose diagnoses, and suggest procedures to uncover the underlying issue.",
   };
 
   const chiefComplaintMessage: MessageWithTempId = {
@@ -149,41 +144,35 @@ export function ChatPage() {
   const isInputDisabled = isWaitingForResponse || !!currentCase.completed;
 
   return (
-    <div className="flex flex-col h-full relative">
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-        <div className="max-w-3xl mx-auto space-y-4 pb-4">
-          {displayMessages.map((msg, idx) => (
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4" ref={scrollRef}>
+        {displayMessages.map((msg, idx) => (
+          <div
+            key={msg.id || idx}
+            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+          >
             <div
-              key={msg.id || idx}
-              className={`flex ${
-                msg.role === "user" ? "justify-end" : "justify-start"
-              }`}
+              className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm prose ${
+                msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+              } ${"isTemp" in msg && msg.isTemp ? "animate-pulse" : ""}`}
             >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-foreground"
-                } ${"isTemp" in msg && msg.isTemp ? "animate-pulse" : ""}`}
-              >
-                {msg.content}
-              </div>
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
             </div>
-          ))}
-          {isWaitingForResponse && (
-            <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-muted text-foreground flex items-center gap-1.5 h-[36px]">
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.3s]" />
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.15s]" />
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" />
-              </div>
+          </div>
+        ))}
+        {isWaitingForResponse && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-muted text-foreground flex items-center gap-1.5 h-[36px]">
+              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.3s]" />
+              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.15s]" />
+              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" />
             </div>
-          )}
-        </div>
-      </ScrollArea>
+          </div>
+        )}
+      </div>
 
-      <div className="p-4 bg-background border-t">
-        <div className="max-w-3xl mx-auto space-y-4">
+      <div className="p-4 bg-background border-t shrink-0">
+        <div className="mx-auto space-y-4">
           <div className="flex gap-2">
             <ActionDropdown
               type="Diagnosis"
@@ -198,10 +187,7 @@ export function ChatPage() {
               disabled={isInputDisabled}
             />
           </div>
-          <form
-            onSubmit={handleSubmit}
-            className="flex items-center gap-2"
-          >
+          <form onSubmit={handleSubmit} className="flex items-center gap-2">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -209,10 +195,7 @@ export function ChatPage() {
               disabled={isInputDisabled}
               className="flex-1"
             />
-            <Button
-              type="submit"
-              disabled={!input.trim() || isInputDisabled}
-            >
+            <Button type="submit" disabled={!input.trim() || isInputDisabled}>
               <Send className="h-4 w-4" />
               <span className="sr-only">Send</span>
             </Button>

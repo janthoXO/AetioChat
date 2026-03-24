@@ -116,6 +116,7 @@ router.post("/:caseId/message", authMiddleware, async (req: AuthRequest, res) =>
       .catch(e => console.error("Agent failed:", e));
 
   } catch (err: any) {
+    console.error("Error handling message:", err);
     res.status(500).json({ error: err.message });
   }
 });

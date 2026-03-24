@@ -11,7 +11,7 @@ router.use((_req, _res, next) => {
 router.get("/", async (_req, res) => {
   try {
     const data = await fetchProcedures();
-    console.debug("Fetched procedures:", data);
+    console.debug(`Fetched ${data.length} procedures`);
     res.json(data);
   } catch (err: any) {
     console.error("Error fetching procedures:", err);

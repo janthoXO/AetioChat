@@ -11,8 +11,85 @@ import {
   AIMessage,
   HumanMessage,
 } from "@langchain/core/messages";
+import type { Diagnosis } from "shared/index.js";
+import type { ProcedureWithRelevance } from "@/02models/Procedure.js";
+import { XMLReasoningFilter } from "@/utils/ReasoningFilter.js";
 
 export const agentService = {
+  getDiagnosisTool(actualDiagnosis: Diagnosis, userId: string, caseId: string) {
+    return tool(
+      async ({ proposedDiagnosis }) => {
+        const prompt = `You are an Attending Physician evaluating a medical student's final diagnosis.
+
+=== DATA ===
+ACTUAL DIAGNOSIS: ${actualDiagnosis.name}
+STUDENT'S GUESS: "${proposedDiagnosis}"
+============
+
+[EVALUATION RULES]
+STATE 1: CORRECT -> Congratulate them.
+STATE 2: PARTIAL MATCH -> Tell them to be more specific. DO NOT reveal actual diagnosis.
+STATE 3: INCORRECT -> Tell them it's incorrect. DO NOT reveal actual diagnosis.
+
+[FORMATTING RULES]
+1. First, you MUST write your private clinical evaluation enclosed in <reasoning>...</reasoning> tags.
+2. If the guess is STATE 1 (Correct), include the exact word [SOLVED] inside your reasoning tag.
+3. Immediately after the closing </reasoning> tag, write your natural language feedback to the student.`;
+
+        console.debug("Diagnosis Tool Prompt:", prompt);
+
+        const result = await getLLM()
+          .withConfig({ runName: "medical_evaluator" })
+          .invoke(prompt);
+
+        console.debug("Diagnosis Tool Raw Result:", result.text);
+
+        // We handle the database completion silently after the stream is done
+        if (result.text.includes("[SOLVED]")) {
+          await casesRepo.markCompleted(userId, caseId);
+        }
+
+        return result.text;
+      },
+      {
+        name: "make_diagnosis",
+        description: "Submit a final diagnosis for the patient.",
+        schema: z.object({ proposedDiagnosis: z.string() }),
+        returnDirect: true,
+      }
+    );
+  },
+
+  getScheduleProcedureTool(caseProcedures?: ProcedureWithRelevance[]) {
+    return tool(
+      async ({ procedureName }) => {
+        const prompt = `You are a Lab Technician AI. 
+USER'S REQUEST: "${procedureName}"
+AVAILABLE PROCEDURES: ${caseProcedures ? JSON.stringify(caseProcedures, null, 2) : "None available."}
+
+[FORMATTING RULES]
+1. First, you MUST write your fuzzy matching logic enclosed in <reasoning>...</reasoning> tags.
+2. Immediately after the closing </reasoning> tag, write the concise, professional natural language report for the doctor.`;
+
+        console.debug("Schedule Procedure Tool Prompt:", prompt);
+
+        const result = await getLLM()
+          .withConfig({ runName: "lab_technician" })
+          .invoke(prompt);
+
+        console.debug("Schedule Procedure Tool Raw Result:", result.text);
+
+        return result.text;
+      },
+      {
+        name: "schedule_procedure",
+        description: "Schedule a medical procedure or lab test.",
+        schema: z.object({ procedureName: z.string() }),
+        returnDirect: true,
+      }
+    );
+  },
+
   async handleMessage(userId: string, caseId: string, userMessage: string) {
     try {
       // 1. Fetch case details and history
@@ -21,80 +98,44 @@ export const agentService = {
 
       const history = await messagesRepo.findByCaseAndUser(caseId, userId);
 
-      // 2. Parse case data
-      const anamnesis =
-        typeof currentCase.anamnesis === "string"
-          ? JSON.parse(currentCase.anamnesis)
-          : currentCase.anamnesis;
+      // 2. Define Tools
+      const tools = [
+        this.getScheduleProcedureTool(currentCase.procedures || undefined),
+        this.getDiagnosisTool(
+          {
+            name: currentCase.diagnosis_name,
+            icd: currentCase.diagnosis_icd || undefined,
+          },
+          userId,
+          caseId
+        ),
+      ];
 
-      const procedures =
-        typeof currentCase.procedures === "string"
-          ? JSON.parse(currentCase.procedures)
-          : currentCase.procedures;
+      // 3. Construct System Prompt
+      const systemPrompt = `You are playing the role of a patient in a medical training simulator. 
+The user is a doctor who will interview you to figure out your diagnosis.
 
-      // 3. Define Tools
-      const scheduleProcedureTool = tool(
-        async ({ procedureName }) => {
-          // In a real app we'd look up the exact procedure in the `procedures` array.
-          // For now, we instruct the LLM to act as the lab and report expected results.
-          return `LAB REPORT: Please provide the expected results for ${procedureName} given the patient has ${currentCase.diagnosis_name}. Never state the diagnosis directly.`;
-        },
-        {
-          name: "schedule_procedure",
-          description: "Schedule a medical procedure or lab test.",
-          schema: z.object({
-            procedureName: z
-              .string()
-              .describe("The name of the procedure to schedule"),
-          }),
-        }
-      );
+=== YOUR IDENTITY & HISTORY ===
+Patient Profile: 
+${JSON.stringify(currentCase.patient, null, 2)}
 
-      const makeDiagnosisTool = tool(
-        async ({ diagnosisName }) => {
-          // Simple string match. In production, could use LLM eval or vector search against ICD.
-          const isCorrect =
-            diagnosisName
-              .toLowerCase()
-              .includes(currentCase.diagnosis_name.toLowerCase()) ||
-            currentCase.diagnosis_name
-              .toLowerCase()
-              .includes(diagnosisName.toLowerCase());
+Chief Complaint: 
+${currentCase.chief_complaint}
 
-          if (isCorrect) {
-            await casesRepo.markCompleted(userId, caseId);
-            return "SYSTEM: The diagnosis is CORRECT. The case is now completed. Congratulate the doctor.";
-          }
-          return "SYSTEM: The diagnosis is INCORRECT. Inform the doctor it is wrong.";
-        },
-        {
-          name: "make_diagnosis",
-          description: "Submit a final diagnosis for the patient.",
-          schema: z.object({
-            diagnosisName: z.string().describe("The name of the diagnosis"),
-          }),
-        }
-      );
+Your Anamnesis (Symptoms, History, Lifestyle): 
+${JSON.stringify(currentCase.anamnesis, null, 2)}
+=========================
 
-      const tools = [scheduleProcedureTool, makeDiagnosisTool];
+[HOW TO ACT]
+1. Speak in the first person ("I", "my") as the patient.
+2. Use layman's terms and match your tone to your age/demographic.
+3. Answer ONLY based on the Anamnesis data provided. If the doctor asks about a symptom not listed, say you don't have it.
+4. Keep answers concise. Do not dump your whole history at once.
 
-      // 4. Construct System Prompt
-      const systemPrompt = `You are a patient simulator and medical lab reporter for a case.
-The doctor will ask you questions to figure out the diagnosis.
-Here is the patient's data:
-Patient Profile: ${JSON.stringify(currentCase.patient)}
-Chief Complaint: ${currentCase.chief_complaint}
-Anamnesis: ${JSON.stringify(anamnesis)}
-Procedures/Lab results (if scheduled): ${JSON.stringify(procedures)}
-REAL DIAGNOSIS: ${currentCase.diagnosis_name} (ICD: ${currentCase.diagnosis_icd || "none"})
-
-CRITICAL RULES:
-1. If the doctor asks anamnesis questions, answer as the patient using the Anamnesis data.
-2. If the user asks for a procedure or lab, USE THE \`schedule_procedure\` TOOL.
-3. If the user makes a diagnosis, USE THE \`make_diagnosis\` TOOL.
-4. NEVER REVEAL THE REAL DIAGNOSIS directly to the user.
-5. Keep answers concise.
-Note: the most recent message from the user is: ${userMessage}`;
+[SYSTEM INSTRUCTIONS]
+- If the doctor says "I want to order a blood test" or asks for ANY medical procedure/lab, you MUST use the \`schedule_procedure\` tool.
+- If the doctor says "My diagnosis is X" or "I think you have Y," you MUST use the \`make_diagnosis\` tool.
+- IMPORTANT: When you receive the result from ANY tool, forward that EXACT result directly to the user word-for-word. Do not alter it, do not roleplay as the patient for that specific message, and do not call the tool again. Just output the tool's result.`;
 
       // 5. Construct message history for LangChain
       const promptMessages = [
@@ -104,39 +145,64 @@ Note: the most recent message from the user is: ${userMessage}`;
             ? new HumanMessage(m.content)
             : new AIMessage(m.content)
         ),
+        new HumanMessage(userMessage), // Ensure the latest message is appended as a distinct HumanMessage
       ];
 
       // 6. Execute Agent Loop with Streaming
-      const llm = getLLM();
+      const llm = getLLM().withConfig({ runName: "patient_model" });
 
       const agent = createAgent({
         model: llm,
         tools,
       });
 
-      let fullResponse = "";
-
-      const eventStream = await agent.streamEvents(
+      const eventStream = agent.streamEvents(
         { messages: promptMessages },
         { version: "v2" }
       );
 
+      let fullResponse = "";
+      const streamFilter = new XMLReasoningFilter();
       for await (const event of eventStream) {
-        if (event.event === "on_chat_model_stream") {
-          const chunk = event.data.chunk.content;
-          if (chunk && typeof chunk === "string") {
-            fullResponse += chunk;
-            sseService.sendToUser(caseId, userId, {
-              type: "chunk",
-              content: chunk,
-            });
+        // Ensure we are only grabbing chunks from our LLMs
+        if (
+          event.event === "on_chat_model_stream" &&
+          ["patient_model", "lab_technician", "medical_evaluator"].includes(
+            event.name
+          )
+        ) {
+          const rawChunk = event.data.chunk.content;
+
+          if (rawChunk && typeof rawChunk === "string") {
+            // 2. Pass the raw chunk through the filter
+            const cleanChunk = streamFilter.processChunk(rawChunk);
+
+            // 3. Only stream to the user if the filter returned safe text
+            if (cleanChunk !== "") {
+              fullResponse += cleanChunk;
+              sseService.sendToUser(caseId, userId, {
+                type: "chunk",
+                content: cleanChunk,
+              });
+            }
           }
         }
+      }
+
+      // 4. Flush any remaining safe text when the stream ends
+      const finalChunk = streamFilter.flush();
+      if (finalChunk !== "") {
+        fullResponse += finalChunk;
+        sseService.sendToUser(caseId, userId, {
+          type: "chunk",
+          content: finalChunk,
+        });
       }
 
       sseService.sendToUser(caseId, userId, { type: "done" });
 
       // 7. Save assistant message to DB
+      fullResponse = fullResponse.trim();
       if (fullResponse) {
         await messagesRepo.create({
           userId,
@@ -157,17 +223,24 @@ Note: the most recent message from the user is: ${userMessage}`;
   async resumeInterruptedMessages() {
     try {
       const latestMessages = await messagesRepo.findLatestMessagePerCase();
-      
-      const interrupted = latestMessages.filter(m => m.role === "user");
-      
+
+      const interrupted = latestMessages.filter((m) => m.role === "user");
+
       if (interrupted.length > 0) {
-        console.log(`Resuming ${interrupted.length} interrupted AI responses...`);
-        
+        console.log(
+          `Resuming ${interrupted.length} interrupted AI responses...`
+        );
+
         for (const msg of interrupted) {
           // Fire asynchronously
-          this.handleMessage(msg.user_id, msg.case_id, msg.content).catch(e => {
-            console.error(`Failed to resume message for case ${msg.case_id}:`, e);
-          });
+          this.handleMessage(msg.user_id, msg.case_id, msg.content).catch(
+            (e) => {
+              console.error(
+                `Failed to resume message for case ${msg.case_id}:`,
+                e
+              );
+            }
+          );
         }
       }
     } catch (error) {
