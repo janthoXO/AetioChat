@@ -1,5 +1,5 @@
+import { ProcedureSchema, type Procedure } from "@/02models/Procedure.js";
 import { config } from "@/config.js";
-import { ProcedureSchema, type Procedure } from "shared/index.js";
 
 export async function fetchProcedures(): Promise<Procedure[]> {
   const res = await fetch(`${config.GENERATOR_URL}/procedures`);

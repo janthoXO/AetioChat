@@ -2,9 +2,9 @@ import { initRouter } from "./01rest/router.js";
 import { config } from "./config.js";
 import { usersRepo } from "./03db/repos/users.repo.js";
 import bcrypt from "bcrypt";
-import { migrate } from "./03db/migrate.js";
+import { migrate } from "./03db/migrations/index.js";
 import { casesService } from "./02services/cases.service.js";
-import { agentService } from "./02services/agent.service.js";
+import { resumeInterruptedMessages } from "./02services/message/message.service.js";
 
 console.log("Environment variables loaded.", config);
 
@@ -15,7 +15,7 @@ async function bootstrap() {
   });
 
   casesService.resumeGeneratingCases();
-  agentService.resumeInterruptedMessages();
+  resumeInterruptedMessages();
 
   if (config.ADMIN_USERNAME && config.ADMIN_PASSWORD) {
     const existingAdmin = await usersRepo.findByUsername(config.ADMIN_USERNAME);

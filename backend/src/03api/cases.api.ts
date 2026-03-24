@@ -1,8 +1,9 @@
 import { AnamnesisSchema } from "@/02models/Anamnesis.js";
+import { ChiefComplaintSchema } from "@/02models/ChiefComplaint.js";
+import type { Diagnosis } from "@/02models/Diagnosis.js";
 import { PatientSchema } from "@/02models/Patient.js";
 import { ProcedureWithRelevanceSchema } from "@/02models/Procedure.js";
 import { config } from "@/config.js";
-import { ChiefComplaintSchema, type Diagnosis } from "shared/index.js";
 import z from "zod";
 
 const CaseGenerationDTOSchema = z.object({

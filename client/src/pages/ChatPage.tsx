@@ -4,21 +4,16 @@ import { useCases } from "@/contexts/CasesContext";
 import { ActionDropdown } from "@/components/ActionDropdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send } from "lucide-react";
 import { toast } from "sonner";
-import type { Message } from "shared/index.js";
+import { type MessageDTO } from "shared/index.js";
 import { fetchMessages, sendMessage as sendMsgApi } from "@/api/messages.api";
 import ReactMarkdown from "react-markdown";
-
-type MessageWithTempId =
-  | (Message & { isTemp?: boolean })
-  | { id: string; role: "user" | "assistant"; content: string; isTemp?: boolean };
 
 export function ChatPage() {
   const { caseId } = useParams<{ caseId: string }>();
   const { cases, diagnoses, procedures, loadOptions } = useCases();
-  const [messages, setMessages] = useState<MessageWithTempId[]>([]);
+  const [messages, setMessages] = useState<Partial<MessageDTO>[]>([]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -40,39 +35,37 @@ export function ChatPage() {
 
     // Set up SSE
     const eventSource = new EventSource(
-      `${import.meta.env.VITE_API_URL || "http://localhost:3031/api"}/cases/${caseId}/events`,
+      `${import.meta.env.VITE_API_URL || "http://localhost:3031/api"}/cases/${caseId}/messages/events`,
       { withCredentials: true },
     );
 
     eventSource.onmessage = (event) => {
+      console.debug("Received SSE message event:", event.data);
+      const { type, content } = JSON.parse(event.data);
       try {
-        const data = JSON.parse(event.data);
-        if (data.type === "chunk") {
+        if (type === "chunk") {
           setMessages((prev) => {
             const lastMsg = prev[prev.length - 1];
-            if (lastMsg && lastMsg.role === "assistant" && lastMsg.isTemp) {
+            if (lastMsg && lastMsg.role === "assistant" && !lastMsg.createdAt) {
               // Append to existing temp message
-              return [...prev.slice(0, -1), { ...lastMsg, content: lastMsg.content + data.content }];
+              return [...prev.slice(0, -1), { ...lastMsg, content: lastMsg.content + content }];
             } else {
               // Create new temp message
-              return [
-                ...prev,
-                { id: `temp-${Date.now()}`, role: "assistant", content: data.content, isTemp: true },
-              ];
+              return [...prev, { id: `temp-${Date.now()}`, role: "assistant", content: content }];
             }
           });
-        } else if (data.type === "done") {
+        } else if (type === "done") {
           // Finalize temp message
           setMessages((prev) => {
             const lastMsg = prev[prev.length - 1];
-            if (lastMsg && lastMsg.isTemp) {
-              return [...prev.slice(0, -1), { ...lastMsg, isTemp: false }];
+            if (lastMsg && !lastMsg.createdAt) {
+              return [...prev.slice(0, -1), { ...lastMsg, createdAt: new Date().toISOString() }];
             }
             return prev;
           });
-        } else if (data.type === "error") {
-          console.error("SSE Error:", data.content);
-          toast.error(`Error: ${data.content || "Connection lost"}`);
+        } else if (type === "error") {
+          console.error("SSE Error:", content);
+          toast.error(`Error: ${content || "Connection lost"}`);
         }
       } catch (e) {
         console.error("Failed to parse SSE event:", e);
@@ -122,14 +115,14 @@ export function ChatPage() {
   }
 
   // Determine all messages to show (include chief complaint as first AI message if no messages yet)
-  const welcomeMessage: MessageWithTempId = {
+  const welcomeMessage = {
     id: "welcome-msg",
     role: "assistant",
     content:
       "Welcome to AetioChat! You can start asking questions to investigate the case, propose diagnoses, and suggest procedures to uncover the underlying issue.",
   };
 
-  const chiefComplaintMessage: MessageWithTempId = {
+  const chiefComplaintMessage = {
     id: "chief-complaint-msg",
     role: "assistant",
     content: `Patient's Chief Complaint: ${currentCase.chiefComplaint}`,
@@ -162,7 +155,7 @@ export function ChatPage() {
         ))}
         {isWaitingForResponse && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-muted text-foreground flex items-center gap-1.5 h-[36px]">
+            <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-muted text-foreground flex items-center gap-1.5 h-[2em]">
               <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.3s]" />
               <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.15s]" />
               <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" />

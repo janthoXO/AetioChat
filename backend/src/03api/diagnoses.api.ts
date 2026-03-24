@@ -1,5 +1,5 @@
+import { DiagnosisSchema, type Diagnosis } from "@/02models/Diagnosis.js";
 import { config } from "@/config.js";
-import { DiagnosisSchema, type Diagnosis } from "shared/index.js";
 
 export async function fetchDiagnoses(): Promise<Diagnosis[]> {
   const res = await fetch(`${config.GENERATOR_URL}/diseases`);

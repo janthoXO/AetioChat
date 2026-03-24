@@ -1,5 +1,10 @@
 import z from "zod";
-import { ProcedureSchema as BaseProcedureSchema } from "shared/index.js";
+
+export const ProcedureSchema = z.object({
+  name: z.string().describe("Procedure name"),
+});
+
+export type Procedure = z.infer<typeof ProcedureSchema>;
 
 export const ProcedureRelevanceSchema = z.enum([
   "obligatory",
@@ -8,11 +13,16 @@ export const ProcedureRelevanceSchema = z.enum([
 ]);
 export type ProcedureRelevance = z.infer<typeof ProcedureRelevanceSchema>;
 
-export const ProcedureWithRelevanceSchema = BaseProcedureSchema.extend({
+export const ProcedureWithRelevanceSchema = ProcedureSchema.extend({
   relevance: ProcedureRelevanceSchema.describe(
     "Relevance of the procedure to the diagnosis"
   ),
-  result: z.string().describe("Result of the procedure, if applicable").optional(),
+  result: z
+    .string()
+    .describe("Result of the procedure, if applicable")
+    .optional(),
 });
 
-export type ProcedureWithRelevance = z.infer<typeof ProcedureWithRelevanceSchema>;
+export type ProcedureWithRelevance = z.infer<
+  typeof ProcedureWithRelevanceSchema
+>;

@@ -1,8 +1,8 @@
 import type { Patient } from "@/02models/Patient.js";
 import { db } from "../database.js";
-import type { ChiefComplaint } from "shared/index.js";
 import type { ProcedureWithRelevance } from "@/02models/Procedure.js";
 import type { Anamnesis } from "@/02models/Anamnesis.js";
+import type { ChiefComplaint } from "@/02models/ChiefComplaint.js";
 
 export const casesRepo = {
   async findAll() {
@@ -91,7 +91,7 @@ export const casesRepo = {
       .selectFrom("cases")
       .innerJoin("user_cases", "user_cases.case_id", "cases.id")
       .selectAll("cases")
-      .select(["user_cases.completed", "user_cases.started_at"])
+      .select(["user_cases.completed_at", "user_cases.started_at"])
       .where("user_cases.user_id", "=", userId)
       .orderBy("user_cases.started_at", "desc")
       .execute();
@@ -125,10 +125,10 @@ export const casesRepo = {
       )
       .select([
         "cases.id",
-        "cases.chief_complaint as chiefComplaint",
-        "cases.created_at as createdAt",
-        "user_cases.started_at as startedAt",
-        "user_cases.completed",
+        "cases.chief_complaint",
+        "cases.created_at",
+        "user_cases.started_at",
+        "user_cases.completed_at",
       ])
       .orderBy("cases.created_at", "desc")
       .execute();
@@ -148,7 +148,7 @@ export const casesRepo = {
   async markCompleted(userId: string, caseId: string) {
     return db
       .updateTable("user_cases")
-      .set({ completed: new Date().toISOString() })
+      .set({ completed_at: new Date().toISOString() })
       .where("user_id", "=", userId)
       .where("case_id", "=", caseId)
       .execute();

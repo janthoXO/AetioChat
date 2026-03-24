@@ -1,5 +1,5 @@
 import { fetchApi } from "@/lib/api";
-import type { CaseDTO } from "shared/models/Case.dto";
+import type { CaseDTO } from "../../../shared/src/index.js";
 
 export async function fetchCases() {
   return fetchApi<CaseDTO[]>("/cases");

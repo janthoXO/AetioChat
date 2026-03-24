@@ -1,9 +1,7 @@
 import { sql } from "kysely";
-import { db } from "./database.js";
+import { db } from "../database.js";
 
-export async function migrate() {
-  console.log("Running migrations...");
-
+async function init() {
   await sql`
     CREATE EXTENSION IF NOT EXISTS "pgcrypto";
   `.execute(db);
@@ -21,13 +19,13 @@ export async function migrate() {
   await sql`
     CREATE TABLE IF NOT EXISTS cases (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      patient JSONB NOT NULL,
-      chief_complaint TEXT NOT NULL,
-      anamnesis JSONB NOT NULL DEFAULT '[]',
-      procedures JSONB NOT NULL DEFAULT '[]',
+      patient JSONB,
+      chief_complaint TEXT,
+      anamnesis JSONB,
+      procedures JSONB,
       diagnosis_name VARCHAR(255) NOT NULL,
       diagnosis_icd VARCHAR(20),
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      created_at TIMESTAMPTZ
     );
   `.execute(db);
 
@@ -35,7 +33,7 @@ export async function migrate() {
     CREATE TABLE IF NOT EXISTS user_cases (
       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
-      completed BOOLEAN NOT NULL DEFAULT FALSE,
+      completed_at TIMESTAMPTZ,
       started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (user_id, case_id)
     );
@@ -53,18 +51,14 @@ export async function migrate() {
   `.execute(db);
 
   await sql`
-    ALTER TABLE cases
-    ALTER COLUMN patient DROP NOT NULL,
-    ALTER COLUMN chief_complaint DROP NOT NULL,
-    ALTER COLUMN anamnesis DROP NOT NULL,
-    ALTER COLUMN procedures DROP NOT NULL,
-    ALTER COLUMN created_at DROP NOT NULL;
-  `.execute(db);
-
-  await sql`
     CREATE INDEX IF NOT EXISTS idx_messages_user_case
     ON messages (user_id, case_id, created_at);
   `.execute(db);
+}
+
+export async function migrate() {
+  console.log("Running migrations...");
+  await init();
 
   console.log("✅ Migrations complete.");
 }

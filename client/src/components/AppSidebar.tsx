@@ -15,6 +15,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
+import { toast } from "sonner";
 
 export function AppSidebar() {
   const { myCases, newCases, generateCase, isGenerating } = useCases();
@@ -78,7 +79,9 @@ export function AppSidebar() {
               )}
               {user?.role === "admin" && (
                 <SidebarMenuItem className="mt-4">
-                  <SidebarMenuButton variant="outline" onClick={generateCase} disabled={isGenerating}>
+                  <SidebarMenuButton variant="outline" onClick={() => generateCase().then(() => {
+                    toast.success("Case generation started!");
+                  })} disabled={isGenerating}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     {isGenerating ? "Generating..." : "Generate New Case"}
                   </SidebarMenuButton>

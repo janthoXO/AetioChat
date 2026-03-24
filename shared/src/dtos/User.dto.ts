@@ -1,9 +1,9 @@
 import z from "zod";
 
-export const UserSchema = z.object({
+export const UserDTOSchema = z.object({
   id: z.uuid(),
   username: z.string(),
   role: z.enum(["user", "admin"]),
 });
 
-export type User = z.infer<typeof UserSchema>;
+export type UserDTO = z.infer<typeof UserDTOSchema>;

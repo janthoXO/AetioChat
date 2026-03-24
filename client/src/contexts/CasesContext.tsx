@@ -3,7 +3,7 @@ import type { Diagnosis, Procedure } from "shared/index.js";
 import { fetchCases as fetchCasesApi, generateCase as generateCaseApi } from "@/api/cases.api";
 import { fetchDiagnoses } from "@/api/diagnosis.api";
 import { fetchProcedures } from "@/api/procedures.api";
-import type { CaseDTO } from "shared/models/Case.dto";
+import type { CaseDTO } from "../../../shared/src/index.js";
 import { useAuth } from "./AuthContext";
 import { API_URL } from "@/lib/api";
 

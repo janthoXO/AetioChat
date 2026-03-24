@@ -1,8 +1,8 @@
 import type { Anamnesis } from "@/02models/Anamnesis.js";
+import type { ChiefComplaint } from "@/02models/ChiefComplaint.js";
 import type { Patient } from "@/02models/Patient.js";
 import type { ProcedureWithRelevance } from "@/02models/Procedure.js";
 import type { Generated, JSONColumnType } from "kysely";
-import type { ChiefComplaint } from "shared/index.js";
 
 export interface Database {
   users: UsersTable;
@@ -33,7 +33,7 @@ export interface CasesTable {
 export interface UserCasesTable {
   user_id: string;
   case_id: string;
-  completed?: Generated<string>;
+  completed_at?: Generated<string>;
   started_at: Generated<string>;
 }
 

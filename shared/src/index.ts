@@ -1,14 +1,17 @@
-export { ChiefComplaintSchema, type ChiefComplaint } from "./models/ChiefComplaint.js";
+export { ChiefComplaintDTOSchema, type ChiefComplaintDTO } from "./dtos/ChiefComplaint.dto.js";
 export {
-  DiagnosisSchema,
+  DiagnosisDTOSchema,
   ICDCodeSchema,
   ICDCodePattern,
-  type Diagnosis,
+  type DiagnosisDTO,
   type ICDCode,
-} from "./models/Diagnosis.js";
+} from "./dtos/Diagnosis.dto.js";
+export { ProcedureDTOSchema, type ProcedureDTO } from "./dtos/Procedure.dto.js";
 export {
-  ProcedureDTOSchema as ProcedureSchema,
-  type ProcedureDTO as Procedure,
-} from "./models/Procedure.dto.js";
-export { MessageSchema, MessageRoleSchema, type Message, type MessageRole } from "./models/Message.js";
-export { UserSchema, type User } from "./models/User.js";
+  MessageDTOSchema,
+  MessageRoleDTOSchema,
+  type MessageDTO,
+  type MessageRoleDTO,
+} from "./dtos/Message.dto.js";
+export { UserDTOSchema, type UserDTO } from "./dtos/User.dto.js";
+export { type CaseUserViewDTO } from "./dtos/Case.dto.js";
